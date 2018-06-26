@@ -10,6 +10,18 @@ scopeCounter = 0
 Scopes = []
 ActiveScope = 0
 
+def a():
+    clear()
+    scope = addScope(3,3,0, 3,3,3)
+
+    pos = [4,4,3]
+    size = [3,3,3]
+    scope.addCube((-6,-6,3),(3,3,3))
+    scope.addCube(pos,size)
+    scope.addCube((-6,6,3),(3,3,3))
+    scope.addCube(( 4,-6,3),(3,3,3))
+
+
 
 def rule( num = 0, ScopeID = ActiveScope):
     #randomness
@@ -27,14 +39,13 @@ def rule( num = 0, ScopeID = ActiveScope):
         for shape in Scopes[ScopeID].Shapes :
             val = random.randint(0,9)
             if(val < 3):
-                print("randomnes decided NO")
-                return
-
-            if(shape.Size[2] >= 3):
-                if(shape.Size[2] < 5 ):
-                    shape.subdivide_r("z", (2,0.2,2))
-                elif (shape.Size[2] >= 5):
-                    shape.subdivide_r("z", (2,0.2,2,2,2))
+                print("randomnes decided: NO")
+            else:
+                if(shape.Size[2] >= 3):
+                    if(shape.Size[2] < 5 ):
+                        shape.subdivide_r("z", (2,0.2,2))
+                    elif (shape.Size[2] >= 5):
+                        shape.subdivide_r("z", (2,0.2,2,2,2))
 
 
 
@@ -90,7 +101,7 @@ class Shape(object):
         P = Scopes[self.ScopeID].P
         # bpy.ops.transform.resize(value=(self.Size[0], self.Size[1], self.Size[2]))
         self.meshObj.scale = (self.Size[0], self.Size[1], self.Size[2])
-        self.meshObj.location = (self.Pos[0] + P[0], self.Pos[1] + P[1], self.Pos[2] + P[2])
+        self.meshObj.location = (P[0] + self.Pos[0], P[1] + self.Pos[1], P[2] + self.Pos[2])
         print("update position of ", self.id,"  in position :", self.Pos, "  and with size", self.Size)
 
     #translate the object
@@ -144,35 +155,34 @@ class Shape(object):
                 print(" can't split the cylinder in this dimension")
                 return
         #variables for the loop
-        p = listDiv[i]
         s2 = 0
+        p = 0
         for i in range(numDiv):
+
+            s0 = listDiv[0]
             s = listDiv[i]
-            if(i != numDiv-1):
-                s2 = listDiv[i+1]
-            else:
-                s2 = 0
-            print("size ", s)
-            print("position given ", p, " on coordinate", coord , " , original position :",self.Pos)
+            if(i != numDiv-1): s2 = listDiv[i+1]
+            else:s2 = 0
+
             if(coord == "x"):
                 if(self.Type == ShapeType.CUBE):
-                    Scopes[self.ScopeID].addCube( (self.Pos[0] + p, self.Pos[1], self.Pos[2]), ( s, self.Size[1], self.Size[2]))
+                    Scopes[self.ScopeID].addCube( (self.Pos[0] - (self.Size[0]-s0) + p, self.Pos[1], self.Pos[2]), ( s, self.Size[1], self.Size[2]))
                 elif(self.Type == ShapeType.CYL):
-                    Scopes[self.ScopeID].addCyl( (self.Pos[0] + p , self.Pos[1], self.Pos[2]), ( s, self.Size[1], self.Size[2]))
+                    Scopes[self.ScopeID].addCyl( (self.Pos[0] - (self.Size[0]-s0) + p , self.Pos[1], self.Pos[2]), ( s, self.Size[1], self.Size[2]))
             if(coord == "y"):
                 if(self.Type == ShapeType.CUBE):
-                    Scopes[self.ScopeID].addCube( (self.Pos[0], self.Pos[1] + p, self.Pos[2]), (self.Size[0], s, self.Size[2]))
+                    Scopes[self.ScopeID].addCube( (self.Pos[0], self.Pos[1] - (self.Size[1]-s0) + p, self.Pos[2]), (self.Size[0], s, self.Size[2]))
                 elif(self.Type == ShapeType.CYL):
-                    Scopes[self.ScopeID].addCyl( (self.Pos[0], self.Pos[1] + p, self.Pos[2]), (self.Size[0], s, self.Size[2]))
+                    Scopes[self.ScopeID].addCyl( (self.Pos[0], self.Pos[1] - (self.Size[1]-s0) + p, self.Pos[2]), (self.Size[0], s, self.Size[2]))
             if(coord == "z"):
                 if(self.Type == ShapeType.CUBE):
-                    Scopes[self.ScopeID].addCube( (self.Pos[0], self.Pos[1], p), (self.Size[0], self.Size[1], s))
+                    Scopes[self.ScopeID].addCube( (self.Pos[0], self.Pos[1],self.Pos[2] - (self.Size[2]-s0) +  p), (self.Size[0], self.Size[1], s))
                 elif(self.Type == ShapeType.CYL):
-                    Scopes[self.ScopeID].addCyl( (self.Pos[0], self.Pos[1], self.Pos[2] + p), (self.Size[0], self.Size[1], s))
+                    Scopes[self.ScopeID].addCyl( (self.Pos[0], self.Pos[1], self.Pos[2] - (self.Size[2]-s0) + p), (self.Size[0], self.Size[1], s))
             p = p + s + s2
         self.Type = ShapeType.NONE
 
-
+    #relative subdivision, keep the dimensions
     def subdivide_r(self, coord, listDiv ):
         if(self.Type == ShapeType.NONE ):
             return
@@ -195,33 +205,38 @@ class Shape(object):
         p = 0
         s2 = 0
         for i in range(numDiv):
+
+            s0 = listDiv[0]
             s = listDiv[i]
-            if(i != numDiv-1):
-                s2 = listDiv[i+1]
-            else:
-                s2 = 0
+            if(i != numDiv-1): s2 = listDiv[i+1]
+            else:s2 = 0
+
             print("position given ", p, " on coordinate", coord , " , original position :",self.Pos)
             if(coord == "x"):
-                s = (self.Size[1]/totDiv)*s
-                s2 = (self.Size[1]/totDiv)*s2
+                s0 = (self.Size[0]/totDiv)*s0
+                s = (self.Size[0]/totDiv)*s
+                s2 = (self.Size[0]/totDiv)*s2
+                print("size iniziale ", self.Size[0], " size nuovo ", s0, " la differenza ", (self.Size[0] - s0))
                 if(self.Type == ShapeType.CUBE):
-                    Scopes[self.ScopeID].addCube( (self.Pos[0] + p, self.Pos[1], self.Pos[2]), ( s, self.Size[1], self.Size[2]))
+                    Scopes[self.ScopeID].addCube( (self.Pos[0] - (self.Size[0]-s0) + p, self.Pos[1], self.Pos[2]), ( s, self.Size[1], self.Size[2]))
                 elif(self.Type == ShapeType.CYL):
-                    Scopes[self.ScopeID].addCyl( (self.Pos[0] + p , self.Pos[1], self.Pos[2]), ( s, self.Size[1], self.Size[2]))
+                    Scopes[self.ScopeID].addCyl( (self.Pos[0] - (self.Size[0]-s0)  + p , self.Pos[1], self.Pos[2]), ( s, self.Size[1], self.Size[2]))
             if(coord == "y"):
+                s0 = (self.Size[1]/totDiv)*s0
                 s = (self.Size[1]/totDiv)*s
                 s2 = (self.Size[1]/totDiv)*s2
                 if(self.Type == ShapeType.CUBE):
-                    Scopes[self.ScopeID].addCube( (self.Pos[0], self.Pos[1] + p, self.Pos[2]), (self.Size[0], s, self.Size[2]))
+                    Scopes[self.ScopeID].addCube( (self.Pos[0], self.Pos[1] - (self.Size[1]-s0)  + p, self.Pos[2]), (self.Size[0], s, self.Size[2]))
                 elif(self.Type == ShapeType.CYL):
-                    Scopes[self.ScopeID].addCyl( (self.Pos[0], self.Pos[1] + p, self.Pos[2]), (self.Size[0], s, self.Size[2]))
+                    Scopes[self.ScopeID].addCyl( (self.Pos[0], self.Pos[1] - (self.Size[1]-s0)  + p, self.Pos[2]), (self.Size[0], s, self.Size[2]))
             if(coord == "z"):
+                s0 = (self.Size[2]/totDiv)*s0
                 s = (self.Size[2]/totDiv)*s
                 s2 = (self.Size[2]/totDiv)*s2
                 if(self.Type == ShapeType.CUBE):
-                    Scopes[self.ScopeID].addCube( (self.Pos[0], self.Pos[1], self.Pos[2] + p), (self.Size[0], self.Size[1], s))
+                    Scopes[self.ScopeID].addCube( (self.Pos[0], self.Pos[1],self.Pos[2] - (self.Size[2]-s0)  +  p), (self.Size[0], self.Size[1], s))
                 elif(self.Type == ShapeType.CYL):
-                    Scopes[self.ScopeID].addCyl( (self.Pos[0], self.Pos[1], self.Pos[2] + p), (self.Size[0], self.Size[1], s))
+                    Scopes[self.ScopeID].addCyl( (self.Pos[0], self.Pos[1], self.Pos[2] - (self.Size[2]-s0)  + p), (self.Size[0], self.Size[1], s))
             p = p + s + s2
 
         self.Type = ShapeType.NONE
@@ -271,7 +286,7 @@ class Scope(object):
 
     def resizeScope(self, sx, sy, sz):
         for s in self.Shapes:
-            if(self.Type != ShapeType.NONE):
+            if(s.Type != ShapeType.NONE):
                 s.resize(sx/self.S[0],sy/self.S[1],sz/self.S[2])
         sel.S = (sx,sy,sz)
 
@@ -281,7 +296,7 @@ class Scope(object):
         z = self.P[2] + tz
         self.P = (x,y,z)
         for s in self.Shapes:
-            if(self.Type != ShapeType.NONE):
+            if(s.Type != ShapeType.NONE):
                 s.update()
 
     def scaleScope(self, sx, sy, sz):
@@ -290,17 +305,17 @@ class Scope(object):
         z = self.S[2]*sz
         self.S = (x,y,z)
         for s in self.Shapes:
-            if(self.Type != ShapeType.NONE):
+            if(s.Type != ShapeType.NONE):
                 s.scale(sx,sy,sz)
 
     def subdivideScope(self, coord, listDiv):
         for s in self.Shapes:
-            if(self.Type != ShapeType.NONE):
+            if(s.Type != ShapeType.NONE):
                 s.subdivide(coord, listDiv)
 
     def subdivideScope_r(self, coord, listDiv):
         for s in self.Shapes:
-            if(self.Type != ShapeType.NONE):
+            if(s.Type != ShapeType.NONE):
                 s.subdivide_r(coord, listDiv)
 
 
@@ -327,14 +342,14 @@ def addScope(px=0,py=0,pz=0, sx=3,sy=3,sz=3):
     scopeCounter = scopeCounter + 1;
     return scope
 
-def translateScope(tx, ty, tz, ScopeID=ActiveScope):
+def T(tx, ty, tz, ScopeID=ActiveScope):
     global Scopes
     if(ScopeID > (len(Scopes) - 1) ):
         print("scope ", ScopeID, " not created yet --> addScope(Position, Size)")
         return
     Scopes[ScopeID].translateScope(tx,ty,tz)
 
-def scaleScope(sx, sy, sz, ScopeID=ActiveScope):
+def S(sx, sy, sz, ScopeID=ActiveScope):
     global Scopes
     if(ScopeID > (len(Scopes) - 1) ):
         print("scope ", ScopeID, " not created yet --> addScope(Position, Size)")
@@ -356,7 +371,7 @@ def subdivide(ShapeID, coord, listDiv, ScopeID=ActiveScope):
 def subdivide_r(ShapeID, coord, listDiv, ScopeID=ActiveScope):
     print("subdivide scope , ", ScopeID)
     global Scopes
-    if(ScopeID > (len(Scopes) - 1) ):
+    if(int(ScopeID) > (len(Scopes) - 1) ):
         print("scope ", ScopeID, " not created yet --> addScope(Position, Size)")
         return
     print("subdivide scope , ", ScopeID)
@@ -392,44 +407,14 @@ def pop( ScopeID):
         print("pop: active scope :",ScopeID)
         return Scopes[ScopeID]
 
+#check the status of the created scopes
 def status():
     for s in range(len(Scopes)):
         Scopes[s].info()
 
 
 
-def main():
-    clear()
-    scope = addScope(0,0,0, 3,3,3)
-    scope.addCube((0,0,3),(3,3,3))
-
-    pos = [0,0,2]
-    size = [2,2,2]
-    scope.addCube(pos,size)
-    pos = [2,2,5]
-    size = [1,1,5]
-    scope.addCube(pos,size)
-    pos = [1,1,4]
-    size = [1,1,4]
-    scope.addCyl(pos,size)
-
-    scope2 = addScope(-6,-6,0, 5, 5,5)
-
-    pos = [1,0,1]
-    size = [1,1,1]
-    scope2.addCube(pos,size)
-    pos = [3,3,5]
-    size = [1,1,5]
-    scope2.addCube(pos,size)
-    pos = [4,0,4]
-    size = [0.5,0.5,4]
-    scope2.addCube(pos,size)
-    pos = [4,4,4]
-    size = [1,1,4]
-    scope2.addCyl(pos,size)
-
-
-
+#clear the scene
 def clear():
     global scopeCounter
     scopeCounter = 0

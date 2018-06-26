@@ -10,33 +10,23 @@ scopeCounter = 0
 Scopes = []
 ActiveScope = 0
 
-def a():
-    clear()
-    scope = addScope(3,3,0, 3,3,3)
 
-    pos = [4,4,3]
-    size = [3,3,3]
-    scope.addCube((-6,-6,3),(3,3,3))
-    scope.addCube(pos,size)
-    scope.addCube((-6,6,3),(3,3,3))
-    scope.addCube(( 4,-6,3),(3,3,3))
-
-
-
+#HERE IS THE SPACE WHERE TO DEFINE RULES
 def rule( num = 0, ScopeID = ActiveScope):
     #randomness
-    val = random.randint(0,9)
-    print("random value",val)
+    # val = random.randint(0,9)
+    # print("random value",val)
 
     global Scopes
     if(ScopeID > (len(Scopes) - 1) ):
         print("scope ", ScopeID, " not created yet --> addScope(Position, Size)")
         return
 
-    #rule 0
+    #rule 0: Z-SUBDIVISION BASED ON HEIGTH
     if(num == 0):
 
         for shape in Scopes[ScopeID].Shapes :
+            #random selection
             val = random.randint(0,9)
             if(val < 3):
                 print("randomnes decided: NO")
@@ -48,6 +38,43 @@ def rule( num = 0, ScopeID = ActiveScope):
                         shape.subdivide_r("z", (2,0.2,2,2,2))
 
 
+
+
+
+
+
+
+def start():
+    clear()
+
+    scope0 = addScope(0,0,0, 6,6,10)
+
+    scope0.addCube((2,2,3), (2,2,3))
+    scope0.addCyl((1,5,5), (1,1,5))
+    scope0.addCyl((4,4,6), (1,1,6))
+
+
+    scope1 = addScope(-6,-6,0, 6,6,10)
+
+    scope1.addCyl((0,0,7), (0.1,0.1,7))
+    scope1.addCyl((0,0,1), (1,1,1))
+    # scope1.addCyl((0,0,6), (0.7,0.7,0.1))
+    # scope1.addCyl((0,0,7), (0.9,0.9,0.1))
+
+
+
+    scope2 = addScope(0,-6,0, 6,6,10)
+
+    scope2.addCube((0,0,1), (1,1,1))
+    scope2.addCube((3,3,1), (1,1,1))
+    scope2.addCube((3,0,1), (1,1,1))
+
+
+    scope3 = addScope(-6,0,0, 6,6,10)
+
+    scope3.addCube((2,2,3), (3,3,3))
+
+    status()
 
 #get the number of scopes created
 def scopes():
@@ -244,7 +271,7 @@ class Shape(object):
 
     def info(self):
         print("**** Shape ", self.Type)
-        print("     con id : ", id)
+        print("     id : ", id)
         print("     posizione relativa : ", Pos[0], Pos[1], Pos[2], "  posizione assoluta: ", Pos[0] + P[0], Pos[1] + P[1], Pos[2] + P[2])
         print("     dimensione : ",Size[0], Size[1], Size[2])
 
@@ -328,6 +355,7 @@ class Scope(object):
         print("     z ax = ", self.z)
         print("     numero di shapes : ", len(self.Shapes))
 
+#add a scope in a position and with a certain size, return the scope
 def addScope(px=0,py=0,pz=0, sx=3,sy=3,sz=3):
     global scopeCounter
     id = scopeCounter
@@ -342,6 +370,40 @@ def addScope(px=0,py=0,pz=0, sx=3,sy=3,sz=3):
     scopeCounter = scopeCounter + 1;
     return scope
 
+#remove selected scope
+def removeScope(ScopeID):
+    global Scopes
+    oldNum = len(Scopes)
+    if(ScopeID > (len(Scopes) - 1) ):
+        print("scope ", ScopeID, " not created yet --> addScope(Position, Size)")
+        return
+    for s in Scopes[scopesID].Shapes :
+        for o in bpy.data.objects:
+            o.select = False
+        s.meshObj.select = True
+        bpy.ops.object.delete()
+        s.Type = ShapeType.NONE
+    del Scopes[ScopeID]
+    print("removed Scope:",ScopeID,", number of Scopes before: ",oldNum, " now:",len(Scopes))
+
+#remove a shape from active or selected scope
+def removeShape(ShapeId, ScopeID=ActiveScope):
+    global Scopes
+    if(ScopeID > (len(Scopes) - 1) ):
+        print("scope ", ScopeID, " not created yet --> addScope(Position, Size)")
+        return
+    for o in bpy.data.objects:
+        o.select = False
+    if(ShapeID > (len(Scopes[scopesID].Shape) - 1) ):
+            print("shape ", ShapeID, " doesn't exist")
+            return
+    Scopes[scopesID].Shapes[ShapeID].meshObj.select = True
+    bpy.ops.object.delete()
+    Scopes[scopesID].Shapes[ShapeID].self.Type = ShapeType.NONE
+    print("removed Shape:",ShapeId," from Scope:",ScopeID)
+
+
+#translate Scope
 def T(tx, ty, tz, ScopeID=ActiveScope):
     global Scopes
     if(ScopeID > (len(Scopes) - 1) ):
@@ -349,6 +411,7 @@ def T(tx, ty, tz, ScopeID=ActiveScope):
         return
     Scopes[ScopeID].translateScope(tx,ty,tz)
 
+#scale Scope
 def S(sx, sy, sz, ScopeID=ActiveScope):
     global Scopes
     if(ScopeID > (len(Scopes) - 1) ):
@@ -356,7 +419,8 @@ def S(sx, sy, sz, ScopeID=ActiveScope):
         return
     Scopes[ScopeID].scaleScope(sx,sy,sz)
 
-def subdivide(ShapeID, coord, listDiv, ScopeID=ActiveScope):
+#subdivision of the selected shape ShapeID
+def sub_s(ShapeID, coord, listDiv, ScopeID=ActiveScope):
     print("subdivide scope , ", ScopeID)
     global Scopes
     if(ScopeID > (len(Scopes) - 1) ):
@@ -368,15 +432,17 @@ def subdivide(ShapeID, coord, listDiv, ScopeID=ActiveScope):
     #     print("trying to subdivide the shape ",s)
     #     s.subdivide(coord, listDiv)
 
-def subdivide_r(ShapeID, coord, listDiv, ScopeID=ActiveScope):
+#relative subdivision of the selected shape ShapeID
+def subr_s(ShapeID, coord, listDiv, ScopeID=ActiveScope):
     print("subdivide scope , ", ScopeID)
     global Scopes
-    if(int(ScopeID) > (len(Scopes) - 1) ):
+    if(ScopeID > (len(Scopes) - 1) ):
         print("scope ", ScopeID, " not created yet --> addScope(Position, Size)")
         return
     print("subdivide scope , ", ScopeID)
     Scopes[ScopeID].Shapes[ShapeID].subdivide_r(coord, listDiv)
 
+#addACube to the active Scope
 def addCube(px=0, py=0, pz=1, sx=1, sy=1, sz=1, ScopeID=ActiveScope):
     global Scopes
     if(ScopeID > (len(Scopes) - 1) ):
@@ -386,6 +452,7 @@ def addCube(px=0, py=0, pz=1, sx=1, sy=1, sz=1, ScopeID=ActiveScope):
     size = (sx,sy,sz)
     Scopes[ScopeID].addCube(pos,size)
 
+#add a Cylinder to the active Scope
 def addCyl(px=0, py=0, pz=1, sx=1, sy=1, sz=1, ScopeID=ActiveScope):
     global Scopes
     if(ScopeID > (len(Scopes) - 1) ):
@@ -409,8 +476,14 @@ def pop( ScopeID):
 
 #check the status of the created scopes
 def status():
+    print("")
+    print("")
+    print("*************************************************************")
+    print("STATUS.")
     for s in range(len(Scopes)):
         Scopes[s].info()
+    print("")
+    print("")
 
 
 
@@ -432,13 +505,32 @@ def clear():
 
 
 def help():
+    print("")
+    print("")
+    print("*************************************************************")
+    print("LIST OF FUNCTIONS")
+    print("help(): print this")
     print("scopes() : number of all the scopes")
     print("clear() : clear the scene")
-    print("main() : precomputed scene")
-    print("addScope(ScopeID, Px,Py,Pz,  Sx,Sy,Sz) : create a scope in Position ox,py,pz and Size sx,sy,sz")
-    print("addCube(ScopeID, px,py,pz, sx,sy,sz)  addCyl(px,py,pz, sx,sy,sz")
-    print("     scope.addCube(Position, Size) scope.addCyl(Position, Size) : to add cube and cylinder")
-    print("translateScope(ScopeID, tx,ty,tz) : to translate the scope ")
-    print("     scope.translateScope(tx,ty,tz) : to translate the scope ")
-    print("scaleScope(ScopeID, sx,sy,sz) : to scale the scope ")
-    print("     scope.scaleScope(sx,sy,sz) : to sclae the scope ")
+    print("start() : precomputed scene")
+    print("status() : print the status of the scopes")
+    print("pop(ScopeID) : activate a Scope")
+    print("rule(ruleNum) : select rule to apply to the activeScope")
+    print("addScope( Px,Py,Pz,  Sx,Sy,Sz) : create a scope in Position ox,py,pz and Size sx,sy,sz")
+    print("removeScope(ScopeID)")
+    print("removeShape(ShapeID) : remove from active Scope")
+    print("addCube(px,py,pz, sx,sy,sz)  addCyl(px,py,pz, sx,sy,sz)  added to the active or slected scope")
+    print("T(tx,ty,tz) : to translate the scope ")
+    print("S(sx,sy,sz) : to scale the scope ")
+    print("sub_s(ShapeID, axes, listDivision) : subdivision on shape of the active scope,  axes = string(x or y or z), listDivision is a list of number")
+    print("subr_s(ShapeID, axes, listDivision) : raccomended relative subdivision -> mantains the dimensions of the original mesh")
+    print("")
+    print("There are additional functions for the class Shape and the class Scope usage: scope.function() or shape.function()")
+    print("         in order to get the scope do var scope = pop(ScopeID), for the shape use scope.Shapes[ShapeID]")
+    print("")
+    print("")
+
+
+
+help()
+start()
